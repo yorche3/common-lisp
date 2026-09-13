@@ -1,5 +1,5 @@
 (defpackage #:naive-sort
-  (:use #:cl #:alexandria)
+  (:use #:cl)
   (:export #:selection-sort
            #:bubble-sort
            #:insertion-sort))

@@ -1,88 +1,81 @@
-(defpackage #:naive-sort-test
-  (:use #:cl #:naive-sort #:fiveam)
+(defpackage naive-sort/tests
+  (:use :cl
+        :fiveam)
   (:export #:run-tests))
+(in-package :naive-sort/tests)
 
-(in-package #:naive-sort-test)
+;; NOTE: To run this test file, execute `(asdf:test-system :naive-sort)' in your Lisp.
 
-(def-suite :naive-sort-suite
-  :description "Suite de pruebas para naive-sort")
-(in-suite :naive-sort-suite)
+(def-suite naive-sort-suite
+  :description "Suite of tests for selection-sort, bubble-sort and insertion-sort")
+(in-suite naive-sort-suite)
 
-;; Definición de constantes para los casos de prueba
-(defconstant +standard-input+ #(5 2 9 1 5 6))
-(defconstant +standard-output+ #(1 2 5 5 6 9))
+;; ---------------------------------------------------------------------------
+;; Fixtures: one named constant per input/output case.
+;; ---------------------------------------------------------------------------
 
-(defconstant +sorted-input+ #(1 2 3 4 5))
-(defconstant +sorted-output+ #(1 2 3 4 5))
+;; Case 1 - standard unsorted array
+(defparameter +standard-input+ #(5 2 9 1 5 6))
+(defparameter +standard-output+ #(1 2 5 5 6 9))
 
-(defconstant +reverse-input+ #(5 4 3 2 1))
-(defconstant +reverse-output+ #(1 2 3 4 5))
+;; Case 2 - already sorted array
+(defparameter +sorted-input+ #(1 2 3 4 5))
+(defparameter +sorted-output+ #(1 2 3 4 5))
 
-(defconstant +identical-input+ #(7 7 7 7))
-(defconstant +identical-output+ #(7 7 7 7))
+;; Case 3 - reverse order array
+(defparameter +reverse-input+ #(5 4 3 2 1))
+(defparameter +reverse-output+ #(1 2 3 4 5))
 
-(defconstant +negative-input+ #(3 -1 4 -5 0))
-(defconstant +negative-output+ #(-5 -1 0 3 4))
+;; Case 4 - identical elements
+(defparameter +identical-input+ #(7 7 7 7))
+(defparameter +identical-output+ #(7 7 7 7))
 
-(defconstant +single-input+ #(42))
-(defconstant +single-output+ #(42))
+;; Case 5 - negative numbers
+(defparameter +negative-input+ #(3 -1 4 -5 0))
+(defparameter +negative-output+ #(-5 -1 0 3 4))
 
-(defconstant +empty-input+ #())
-(defconstant +empty-output+ #())
+;; Case 6 - single element
+(defparameter +single-input+ #(42))
+(defparameter +single-output+ #(42))
 
-;; Helper para probar un algoritmo de ordenamiento
-(defun test-sort-algorithm (sort-fn algorithm-name)
-  "Helper que prueba un algoritmo de ordenamiento con los 7 casos estándar"
-  ;; Caso 1: Array estándar desordenado
-  (let ((result (copy-seq +standard-input+)))
-    (setf result (funcall sort-fn result))
-    (is (equal result +standard-output+)
-        "~a should sort an unsorted array" algorithm-name))
-  
-  ;; Caso 2: Array ya ordenado
-  (let ((result (copy-seq +sorted-input+)))
-    (setf result (funcall sort-fn result))
-    (is (equal result +sorted-output+)
-        "~a should sort an already sorted array" algorithm-name))
-  
-  ;; Caso 3: Array en orden inverso
-  (let ((result (copy-seq +reverse-input+)))
-    (setf result (funcall sort-fn result))
-    (is (equal result +reverse-output+)
-        "~a should sort a reverse order array" algorithm-name))
-  
-  ;; Caso 4: Elementos idénticos
-  (let ((result (copy-seq +identical-input+)))
-    (setf result (funcall sort-fn result))
-    (is (equal result +identical-output+)
-        "~a should sort identical elements" algorithm-name))
-  
-  ;; Caso 5: Con números negativos
-  (let ((result (copy-seq +negative-input+)))
-    (setf result (funcall sort-fn result))
-    (is (equal result +negative-output+)
-        "~a should sort with negative numbers" algorithm-name))
-  
-  ;; Caso 6: Un solo elemento
-  (let ((result (copy-seq +single-input+)))
-    (setf result (funcall sort-fn result))
-    (is (equal result +single-output+)
-        "~a should sort single element" algorithm-name))
-  
-  ;; Caso 7: Array vacío
-  (let ((result (copy-seq +empty-input+)))
-    (setf result (funcall sort-fn result))
-    (is (equal result +empty-output+)
-        "~a should sort empty array" algorithm-name)))
+;; Case 7 - empty array
+(defparameter +empty-input+ #())
+(defparameter +empty-output+ #())
 
-;; Pruebas para selection sort
+;; ---------------------------------------------------------------------------
+;; Shared helper: runs the 7 assertions for a given sorting function.
+;; The input is copied before calling SORT-FN so the fixtures stay pristine
+;; even if an implementation mutates its argument in place.
+;; ---------------------------------------------------------------------------
+
+(defparameter +cases+
+  (list (list +standard-input+  +standard-output+  "an unsorted array")
+        (list +sorted-input+    +sorted-output+    "an already sorted array")
+        (list +reverse-input+   +reverse-output+   "a reverse order array")
+        (list +identical-input+ +identical-output+ "identical elements")
+        (list +negative-input+  +negative-output+  "with negative numbers")
+        (list +single-input+    +single-output+    "a single element")
+        (list +empty-input+     +empty-output+     "an empty array")))
+
+(defun check-sorting (sort-fn algorithm-name)
+  "Assert that SORT-FN sorts each fixture into its expected output."
+  (dolist (case +cases+)
+    (destructuring-bind (input expected label) case
+      (is (equalp (funcall sort-fn (copy-seq input)) expected)
+          "~a should sort ~a" algorithm-name label))))
+
+;; ---------------------------------------------------------------------------
+;; One test per algorithm.
+;; ---------------------------------------------------------------------------
+
 (test test-selection-sort
-  (test-sort-algorithm #'selection-sort "selection-sort"))
+  (check-sorting #'naive-sort:selection-sort "selection-sort"))
 
-;; Pruebas para bubble sort
 (test test-bubble-sort
-  (test-sort-algorithm #'bubble-sort "bubble-sort"))
+  (check-sorting #'naive-sort:bubble-sort "bubble-sort"))
 
-;; Pruebas para insertion sort
 (test test-insertion-sort
-  (test-sort-algorithm #'insertion-sort "insertion-sort"))
+  (check-sorting #'naive-sort:insertion-sort "insertion-sort"))
+
+(defun run-tests ()
+  (run! 'naive-sort-suite))
