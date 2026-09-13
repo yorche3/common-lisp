@@ -9,6 +9,7 @@ Proyectos principales de **Common Lisp** agrupados por fase temática.
 | Fase | Descripción |
 |------|-------------|
 | [`foundations/`](foundations/) | **Fase 0 — Fundamentos**: `helloworld`, `hellouser`, `calculator`, `numbers` |
+| [`algorithms/`](algorithms/) | **Fase 1 — Algoritmos Puros**: `naive_sort` |
 
 ---
 

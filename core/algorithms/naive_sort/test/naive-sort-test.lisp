@@ -42,27 +42,32 @@
 (defparameter +empty-input+ #())
 (defparameter +empty-output+ #())
 
+;; Case 8 - nil input -> failure indicator (Common Lisp can represent nil)
+(defparameter +nil-input+ nil)
+(defparameter +nil-output+ nil)
+
 ;; ---------------------------------------------------------------------------
-;; Shared helper: runs the 7 assertions for a given sorting function.
+;; Shared helper: runs the 8 assertions for a given sorting function.
 ;; The input is copied before calling SORT-FN so the fixtures stay pristine
 ;; even if an implementation mutates its argument in place.
 ;; ---------------------------------------------------------------------------
 
 (defparameter +cases+
-  (list (list +standard-input+  +standard-output+  "an unsorted array")
-        (list +sorted-input+    +sorted-output+    "an already sorted array")
-        (list +reverse-input+   +reverse-output+   "a reverse order array")
-        (list +identical-input+ +identical-output+ "identical elements")
-        (list +negative-input+  +negative-output+  "with negative numbers")
-        (list +single-input+    +single-output+    "a single element")
-        (list +empty-input+     +empty-output+     "an empty array")))
+  (list (list +standard-input+  +standard-output+  "sort an unsorted array")
+        (list +sorted-input+    +sorted-output+    "sort an already sorted array")
+        (list +reverse-input+   +reverse-output+   "sort a reverse order array")
+        (list +identical-input+ +identical-output+ "sort identical elements")
+        (list +negative-input+  +negative-output+  "sort with negative numbers")
+        (list +single-input+    +single-output+    "sort a single element")
+        (list +empty-input+     +empty-output+     "sort an empty array")
+        (list +nil-input+       +nil-output+       "return the failure indicator for a nil input")))
 
 (defun check-sorting (sort-fn algorithm-name)
   "Assert that SORT-FN sorts each fixture into its expected output."
   (dolist (case +cases+)
     (destructuring-bind (input expected label) case
       (is (equalp (funcall sort-fn (copy-seq input)) expected)
-          "~a should sort ~a" algorithm-name label))))
+          "~a should ~a" algorithm-name label))))
 
 ;; ---------------------------------------------------------------------------
 ;; One test per algorithm.
