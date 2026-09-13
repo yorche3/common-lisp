@@ -1,4 +1,4 @@
-;; run_tests.lisp - Ejecutar todas las pruebas para naive_sort
+;; run-tests.lisp - Ejecutar todas las pruebas para naive-sort
 
 (defpackage #:naive-sort-run-tests
   (:use #:cl #:fiveam)
@@ -7,7 +7,7 @@
 (in-package #:naive-sort-run-tests)
 
 (defun run-tests ()
-  "Ejecuta todas las pruebas para naive_sort"
+  "Ejecuta todas las pruebas para naive-sort"
   (let ((results (run! :naive-sort-suite)))
     (unless (fiveam::results-all-count results)
       (format t "No tests were run!~%")

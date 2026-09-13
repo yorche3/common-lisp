@@ -77,12 +77,12 @@
 
 ;; Pruebas para selection sort
 (test test-selection-sort
-  (test-sort-algorithm #'selection-sort "selection_sort"))
+  (test-sort-algorithm #'selection-sort "selection-sort"))
 
 ;; Pruebas para bubble sort
 (test test-bubble-sort
-  (test-sort-algorithm #'bubble-sort "bubble_sort"))
+  (test-sort-algorithm #'bubble-sort "bubble-sort"))
 
 ;; Pruebas para insertion sort
 (test test-insertion-sort
-  (test-sort-algorithm #'insertion-sort "insertion_sort"))
+  (test-sort-algorithm #'insertion-sort "insertion-sort"))
