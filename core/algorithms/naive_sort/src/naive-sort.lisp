@@ -6,6 +6,9 @@
 
 (in-package #:naive-sort)
 
+;; selection-sort: selecciona el mínimo del resto no ordenado y lo pone al frente
+;; input: vector de enteros (no se muta; se ordena una copia)
+;; output: copia ordenada de menor a mayor; nil si la entrada es nil
 (defun selection-sort (arr)
   "Implementación de selection sort"
   (when (null arr)
@@ -20,6 +23,9 @@
         (rotatef (aref result i) (aref result min-idx))))
     result))
 
+;; bubble-sort: compara e intercambia adyacentes, con bandera de salida temprana
+;; input: vector de enteros (no se muta; se ordena una copia)
+;; output: copia ordenada de menor a mayor; nil si la entrada es nil
 (defun bubble-sort (arr)
   "Implementación de bubble sort"
   (when (null arr)
@@ -36,6 +42,9 @@
           (return))))
     result))
 
+;; insertion-sort: desplaza cada clave y la inserta en su posición del tramo ordenado
+;; input: vector de enteros (no se muta; se ordena una copia)
+;; output: copia ordenada de menor a mayor; nil si la entrada es nil
 (defun insertion-sort (arr)
   "Implementación de insertion sort"
   (when (null arr)
