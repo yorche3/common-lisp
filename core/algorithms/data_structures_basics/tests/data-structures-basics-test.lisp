@@ -53,23 +53,23 @@
           actual-output))))
 
 (defun node-cases ()
-  (let ((first-node (make-node))
-        (second-node (make-node)))
+  ;; `Node.init(value)` is `make-node :value`: `defstruct` provides the
+  ;; constructor and the accessors, so the link is set through `node-next`.
+  (let ((first-node (make-node :value node-initialization-input))
+        (second-node (make-node :value node-link-input)))
     (list
      (make-test-case
       :name "initialize and observe value and absent link"
       :operation (lambda ()
-                   (node-init first-node node-initialization-input)
-                   (list (node-get-value first-node)
-                         (node-get-next first-node)))
+                   (list (node-value first-node)
+                         (node-next first-node)))
       :expected-output node-initialization-output)
      (make-test-case
       :name "initialize another node, link, and traverse"
       :operation (lambda ()
-                   (node-init second-node node-link-input)
-                   (node-set-next first-node second-node)
-                   (list (node-get-value (node-get-next first-node))
-                         (node-get-next second-node)))
+                   (setf (node-next first-node) second-node)
+                   (list (node-value (node-next first-node))
+                         (node-next second-node)))
       :expected-output node-link-output))))
 
 (defun linked-list-cases ()

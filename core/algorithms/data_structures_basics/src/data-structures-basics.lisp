@@ -2,10 +2,8 @@
   (:use #:cl)
   (:export #:node
            #:make-node
-           #:node-init
-           #:node-get-value
-           #:node-get-next
-           #:node-set-next
+           #:node-value
+           #:node-next
            #:linked-list
            #:make-linked-list
            #:linked-list-init
@@ -33,7 +31,9 @@
            #:queue-size))
 (in-package #:data-structures-basics)
 
-(def failure-value nil)
+;; Natural failure indicator of the language: an absent link and an empty
+;; structure both answer `nil`.
+(defconstant +failure-value+ nil)
 
 (defstruct node
   value
@@ -54,7 +54,10 @@
   count)
 
 (defun linked-list-init (linked-list)
-  (make-linked-list :head nil :tail nil :count 0))
+  (setf (linked-list-head linked-list) nil
+        (linked-list-tail linked-list) nil
+        (linked-list-count linked-list) 0)
+  linked-list)
 
 (defun linked-list-is-empty (linked-list)
   (zerop (linked-list-count linked-list)))
@@ -63,14 +66,14 @@
   (linked-list-count linked-list))
 
 (defun linked-list-get-head (linked-list)
-  (if (not (linked-list-is-empty linked-list))
-      (linked-list-head linked-list)
-      failure-value))
+  (if (linked-list-is-empty linked-list)
+      +failure-value+
+      (node-value (linked-list-head linked-list))))
 
 (defun linked-list-insert-head (linked-list value)
   (let ((new-node (make-node :value value :next (linked-list-head linked-list))))
-    (if (linked-list-is-empty linked-list)
-        (setf (linked-list-tail linked-list) new-node))
+    (when (linked-list-is-empty linked-list)
+      (setf (linked-list-tail linked-list) new-node))
     (setf (linked-list-head linked-list) new-node)
     (incf (linked-list-count linked-list))
     new-node))
@@ -85,27 +88,29 @@
     new-node))
 
 (defun linked-list-delete (linked-list value)
-  (let ((prev nil)
+  (let ((previous nil)
         (current (linked-list-head linked-list)))
-    (loop while current do
-         (if (eql (node-value current) value)
-             (progn
-               (if prev
-                   (setf (node-next prev) (node-next current))
-                   (setf (linked-list-head linked-list) (node-next current)))
-               (when (eql (linked-list-tail linked-list) current)
-                 (setf (linked-list-tail linked-list) prev))
-               (decf (linked-list-count linked-list))
-               (return current))
-             (setf prev current
-                   current (node-next current))))
-    failure-value))
+    (loop while (and current (not (eql (node-value current) value)))
+          do (setf previous current
+                   current (node-next current)))
+    (if (null current)
+        +failure-value+
+        (progn
+          (if previous
+              (setf (node-next previous) (node-next current))
+              (setf (linked-list-head linked-list) (node-next current)))
+          (when (eql current (linked-list-tail linked-list))
+            (setf (linked-list-tail linked-list) previous))
+          (decf (linked-list-count linked-list))
+          t))))
 
 (defun stack-init (stack)
-  (make-stack :top nil :count 0))
+  (setf (stack-top stack) nil
+        (stack-count stack) 0)
+  stack)
 
 (defun stack-is-empty (stack)
-    (zerop (stack-count stack)))
+  (zerop (stack-count stack)))
 
 (defun stack-size (stack)
   (stack-count stack))
@@ -117,19 +122,22 @@
 
 (defun stack-peek (stack)
   (if (stack-is-empty stack)
-      failure-value
-      (stack-top stack)))
+      +failure-value+
+      (node-value (stack-top stack))))
 
 (defun stack-pop (stack)
   (if (stack-is-empty stack)
-      failure-value
+      +failure-value+
       (let ((top-node (stack-top stack)))
         (setf (stack-top stack) (node-next top-node))
         (decf (stack-count stack))
-        top-node)))
+        (node-value top-node))))
 
 (defun queue-init (queue)
-  (make-queue :front nil :rear nil :count 0))
+  (setf (queue-front queue) nil
+        (queue-rear queue) nil
+        (queue-count queue) 0)
+  queue)
 
 (defun queue-is-empty (queue)
   (zerop (queue-count queue)))
@@ -148,15 +156,15 @@
 
 (defun queue-peek (queue)
   (if (queue-is-empty queue)
-      failure-value
-      (queue-front queue)))
+      +failure-value+
+      (node-value (queue-front queue))))
 
 (defun queue-dequeue (queue)
   (if (queue-is-empty queue)
-      failure-value
+      +failure-value+
       (let ((front-node (queue-front queue)))
         (setf (queue-front queue) (node-next front-node))
         (when (null (queue-front queue))
           (setf (queue-rear queue) nil))
         (decf (queue-count queue))
-        front-node)))
+        (node-value front-node))))
