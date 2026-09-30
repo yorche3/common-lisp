@@ -9,6 +9,7 @@ Implementación de la fase [Algorithms Pure](https://yorche3.github.io/programmi
 | Módulo | Estado | Descripción / Description |
 |--------|--------|---------------------------|
 | [`naive_sort/`](naive_sort/) | ✅ | **Ordenamiento elemental** ($O(n^2)$): `selection-sort`, `bubble-sort`, `insertion-sort`. / **Elementary sorting** ($O(n^2)$): `selection-sort`, `bubble-sort`, `insertion-sort`. |
+| [`data_structures_basics/`](data_structures_basics/) | ✅ | **Estructuras de datos fundamentales**: `node`, `linked-list`, `stack`, `queue`. / **Fundamental data structures**: `node`, `linked-list`, `stack`, `queue`. |
 
 ---
 
