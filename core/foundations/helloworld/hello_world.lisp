@@ -8,4 +8,4 @@ exec ros -Q -- $0 "$@"
 
 (defun main (&rest argv)
   (declare (ignorable argv))
-  (format t "Hello, World! from Common Lisp~%"))
+  (format t "Hello, World! from Common Lisp!~%"))

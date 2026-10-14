@@ -8,7 +8,7 @@ Implementación de la especificación [01_Hello_World](https://yorche3.github.io
 
 | Archivo | Propósito |
 |---------|-----------|
-| [`hello_world.lisp`](hello_world.lisp) | Código fuente: imprime `"Hello, World! from Common Lisp"` en la consola. |
+| [`hello_world.lisp`](hello_world.lisp) | Código fuente: imprime `"Hello, World! from Common Lisp!"` en la consola. |
 
 **Estructura de directorios esperada:**
 
