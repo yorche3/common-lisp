@@ -7,7 +7,8 @@
                 #:modulus))
 (in-package #:calculator)
 
-;; blah blah blah.
+;; Operaciones de la especificación 03_Unit_Test_Calculator: multiplication
+;; con suma repetitiva, division con resta repetitiva y modulus con ambas.
 (defun addition (a b)
   (+ a b))
 
