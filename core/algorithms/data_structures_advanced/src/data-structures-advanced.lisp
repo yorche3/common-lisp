@@ -24,20 +24,28 @@
 ;;;;     (representacion): un centinela -1 representable y exigido por el
 ;;;;     contrato no es defecto por existir un mecanismo nativo de ausencia.
 ;;;;   - Ausencia de enlace (get-left, get-right): nil, atomo nativo de
-;;;;     ausencia. No es un fallo: es el enlace que no existe.
-;;;;   - contains, has-edge: 0 si esta, -1 si no.
+;;;;     ausencia. No es un fallo ni una respuesta: es el enlace que no existe.
+;;;;   - Preguntas (contains, has-edge, is-empty): 0 si, -1 no. Todas comparten
+;;;;     el par 0/-1 del modulo; no se usa T/nil porque nil es a la vez falso y
+;;;;     ausencia en Common Lisp, y una pregunta no debe devolver el mismo
+;;;;     objeto que un enlace ausente.
 ;;;;   - insert, add-vertex: 0 exito, tambien con duplicado; no hay capacidad
 ;;;;     ni estado lleno. -1 seria solo agotamiento de memoria, y Common Lisp
 ;;;;     lo senala con storage-condition, no con un valor de retorno.
 ;;;;   - add-edge: 0 si la arista dirigida queda registrada, incluidos bucle y
 ;;;;     repetida; -1 si falta algun extremo, y el fallo no muta nada.
-;;;;   - is-empty: bandera T o nil, porque nunca falla y no hay columna de
-;;;;     fallo que representar; el 0 de las otras operaciones es exito, no
-;;;;     "falso".
 ;;;;   - size, vertex-count, edge-count: el numero, nunca negativo.
+;;;;
+;;;; Construccion: las tres operaciones *-init son la puerta publica y
+;;;; devuelven una instancia nueva (tree-node-init un nodo; binary-tree-init y
+;;;; graph-init la estructura vacia, sin argumentos), como pide la spec. Los
+;;;; make-* que genera defstruct siguen existiendo como primitiva interna y no
+;;;; se exportan: nadie fuera del paquete necesita construirlos a mano.
 ;;;;
 ;;;; get-neighbors devuelve DOS valores: (values vecinos resultado).
 ;;;;   Vertice ausente: (values nil -1). Vertice aislado: (values nil 0).
+;;;;   El segundo valor es el estado de la consulta con el mismo codigo del
+;;;;   resto del modulo.
 ;;;;   Con un solo valor la lista vacia y el fallo serian el mismo objeto
 ;;;;   (nil), porque en Common Lisp la lista vacia es nil.
 ;;;;   Los vecinos se entregan como lista nueva y ascendente: el resultado no
@@ -69,9 +77,11 @@
            #:graph-edge-count))
 (in-package #:data-structures-advanced)
 
-;; Sentinela documentado del modulo: 0 exito, -1 fallo. No es el nil de la
-;; familia "Dinamicos con null"; la base homologada usa nil para la ausencia
-;; de enlace, que aqui se mantiene.
+;; Codigo de resultado del modulo, el mismo en todas las operaciones:
+;; 0 = exito o "si", -1 = fallo o "no". Las preguntas no devuelven T/nil
+;; porque nil es tambien el atomo de ausencia: un enlace ausente y una
+;; respuesta negativa no deben ser el mismo objeto.
+(defconstant +success-value+ 0)
 (defconstant +failure-value+ -1)
 
 ;; El valor vive en cada nodo concreto: las estructuras de Common Lisp no
@@ -107,9 +117,9 @@
 
 (defun tree-node-init (value)
   "Integer -> tree-node. Crea el nodo con este valor y ambos enlaces ausentes.
-Esqueleto: todavia no construye ni devuelve nodo."
+Es la puerta publica al constructor. Esqueleto: ausencia."
   (declare (ignore value))
-  +failure-value+)
+  nil)
 
 (defun tree-node-get-value (node)
   "tree-node -> Integer. Lee el valor embebido sin validar el nodo.
@@ -141,11 +151,11 @@ conservando valor y enlace izquierdo; nil lo desenlaza. Esqueleto: nada."
   (declare (ignore node right))
   +failure-value+)
 
-(defun binary-tree-init (tree)
-  "binary-tree -> binary-tree. Deja el arbol vacio y utilizable, sin parametro
-de capacidad. Esqueleto: nada."
-  (declare (ignore tree))
-  +failure-value+)
+(defun binary-tree-init ()
+  "() -> binary-tree. Crea un arbol vacio y utilizable: raiz ausente y tamano
+0, sin parametro de capacidad. Es la puerta publica al constructor; make-*
+queda como primitiva interna. Esqueleto: ausencia."
+  nil)
 
 (defun binary-tree-insert (tree value)
   "binary-tree, Integer -> 0 o -1. Inserta el valor y devuelve 0; el duplicado
@@ -161,22 +171,21 @@ Esqueleto: fallo."
   +failure-value+)
 
 (defun binary-tree-is-empty (tree)
-  "binary-tree -> T o nil. Bandera: T si el arbol no tiene nodos. Es una
-bandera y no un codigo de resultado, porque la operacion nunca falla.
-Esqueleto: nil."
+  "binary-tree -> 0 o -1. 0 si el arbol no tiene nodos, -1 si tiene alguno.
+Esqueleto: fallo."
   (declare (ignore tree))
-  nil)
+  +failure-value+)
 
 (defun binary-tree-size (tree)
   "binary-tree -> Integer. Numero de nodos, nunca negativo. Esqueleto: 0."
   (declare (ignore tree))
   0)
 
-(defun graph-init (graph)
-  "graph -> graph. Deja el grafo vacio y utilizable: 0 vertices, 0 aristas.
-Esqueleto: nada."
-  (declare (ignore graph))
-  +failure-value+)
+(defun graph-init ()
+  "() -> graph. Crea un grafo vacio y utilizable: 0 vertices y 0 aristas.
+Es la puerta publica al constructor; make-* queda como primitiva interna.
+Esqueleto: ausencia."
+  nil)
 
 (defun graph-add-vertex (graph label)
   "graph, Integer -> 0 o -1. Registra la etiqueta y devuelve 0, tambien si es
@@ -205,10 +214,10 @@ existe o falta algun extremo. No muta. Esqueleto: fallo."
   (values nil +failure-value+))
 
 (defun graph-is-empty (graph)
-  "graph -> T o nil. Bandera: T si no hay vertices registrados. No falla.
-Esqueleto: nil."
+  "graph -> 0 o -1. 0 si no hay vertices registrados, -1 si hay alguno.
+Esqueleto: fallo."
   (declare (ignore graph))
-  nil)
+  +failure-value+)
 
 (defun graph-vertex-count (graph)
   "graph -> Integer. Numero de vertices, nunca negativo. Esqueleto: 0."
