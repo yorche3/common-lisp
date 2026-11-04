@@ -9,7 +9,7 @@ Proyectos en **Common Lisp**, ejecutados con **Roswell (ros)** sobre **SBCL**. U
 | Módulo | Descripción |
 |--------|-------------|
 | [`core/foundations/`](core/foundations/) | **Fase 0 — Fundamentos**: `helloworld`, `hellouser`, `calculator`, `numbers` |
-| [`core/algorithms/`](core/algorithms/) | **Fase 1 — Algoritmos Puros**: `naive_sort`, `data_structures_basics` |
+| [`core/algorithms/`](core/algorithms/) | **Fase 1 — Algoritmos Puros**: `naive_sort`, `data_structures_basics`, `data_structures_advanced` |
 
 ---
 
@@ -34,6 +34,10 @@ ros run --load run-tests.lisp --eval '(uiop:quit)'
 
 # Data Structures Basics Tests
 cd core/algorithms/data_structures_basics
+ros run --load run-tests.lisp --eval '(uiop:quit)'
+
+# Data Structures Advanced Tests
+cd core/algorithms/data_structures_advanced
 ros run --load run-tests.lisp --eval '(uiop:quit)'
 ```
 
