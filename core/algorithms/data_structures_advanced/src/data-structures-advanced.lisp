@@ -1,58 +1,7 @@
-;;;; Contrato de data_structures_advanced: tipos, firmas y esqueletos.
-;;;; Los cuerpos quedan para el paso de implementacion; aqui solo se fija que
-;;;; devuelve cada operacion y como se representa la ausencia.
-;;;;
-;;;; Forma (autoridad por aspecto, docs/AGENT_Template.md):
-;;;;   - La base del mismo lenguaje manda en forma: data_structures_basics usa
-;;;;     defstruct mutable y setf, y ya declara esa desviacion C4 en su README
-;;;;     ("Mutacion con setf en campos de struct", justificada por el O(1)).
-;;;;   - El pseudocodigo V2 (docs/ruleset/PSEUDOCODE_CONVENTION.md) clasifica
-;;;;     la familia lisp como inmutable. Se sigue la base y se declara la
-;;;;     distancia, como exige docs/ruleset/DEVIATION_POLICY.md: la adaptacion
-;;;;     coherente con el paradigma del lenguaje esta permitida y lo prohibido
-;;;;     es la mutacion sin declarar.
-;;;;   - La spec 07 admite ambas formas: "Enlace actualizado, o nuevo nodo si
-;;;;     el lenguaje es inmutable". Mutar no cambia el contrato.
-;;;;
-;;;; Resultados, por operacion (politica homologada del modulo 07):
-;;;;   - Codigo de resultado: 0 exito, -1 fallo (+failure-value+). Es el
-;;;;     centinela documentado que admite la regla 3 del ruleset: Common Lisp
-;;;;     no tiene tipo de ausencia y la regla 2 solo prohibe -1 donde ya hay
-;;;;     Option/Maybe. La familia "Dinamicos con null" del ruleset propone
-;;;;     nil; se homologa el codigo con ada, assembly, cobol y clojure del
-;;;;     mismo modulo, y la distancia se declara aqui como desviacion C2
-;;;;     (representacion): un centinela -1 representable y exigido por el
-;;;;     contrato no es defecto por existir un mecanismo nativo de ausencia.
-;;;;   - Ausencia de enlace (get-left, get-right): nil, atomo nativo de
-;;;;     ausencia. No es un fallo ni una respuesta: es el enlace que no existe.
-;;;;   - Preguntas (contains, has-edge, is-empty): 0 si, -1 no. Todas comparten
-;;;;     el par 0/-1 del modulo; no se usa T/nil porque nil es a la vez falso y
-;;;;     ausencia en Common Lisp, y una pregunta no debe devolver el mismo
-;;;;     objeto que un enlace ausente.
-;;;;   - insert, add-vertex: 0 exito, tambien con duplicado; no hay capacidad
-;;;;     ni estado lleno. -1 seria solo agotamiento de memoria, y Common Lisp
-;;;;     lo senala con storage-condition, no con un valor de retorno.
-;;;;   - add-edge: 0 si la arista dirigida queda registrada, incluidos bucle y
-;;;;     repetida; -1 si falta algun extremo, y el fallo no muta nada.
-;;;;   - size, vertex-count, edge-count: el numero, nunca negativo.
-;;;;
-;;;; Construccion: las tres operaciones *-init son la puerta publica y
-;;;; devuelven una instancia nueva (tree-node-init un nodo; binary-tree-init y
-;;;; graph-init la estructura vacia, sin argumentos), como pide la spec. Los
-;;;; make-* que genera defstruct siguen existiendo como primitiva interna y no
-;;;; se exportan: nadie fuera del paquete necesita construirlos a mano.
-;;;;
-;;;; get-neighbors devuelve DOS valores: (values vecinos resultado).
-;;;;   Vertice ausente: (values nil -1). Vertice aislado: (values nil 0).
-;;;;   El segundo valor es el estado de la consulta con el mismo codigo del
-;;;;   resto del modulo.
-;;;;   Con un solo valor la lista vacia y el fallo serian el mismo objeto
-;;;;   (nil), porque en Common Lisp la lista vacia es nil.
-;;;;   Los vecinos se entregan como lista nueva y ascendente: el resultado no
-;;;;   cambia con aristas posteriores y el llamador no alcanza la adyacencia
-;;;;   interna.
-;;;;
-;;;; graph-node y neighbor-node son internos a graph; no se exportan.
+;;;; data_structures_advanced: modulo 07 en Common Lisp.
+;;;; Resultado: 0 exito o "si", -1 fallo o "no"; ausencia de enlace: nil.
+;;;; get-neighbors entrega (values lista resultado). Las desviaciones
+;;;; (C2 del codigo, C4 de la mutacion) van en el README del modulo.
 
 (uiop:define-package data-structures-advanced
   (:use #:cl)
@@ -77,16 +26,11 @@
            #:graph-edge-count))
 (in-package #:data-structures-advanced)
 
-;; Codigo de resultado del modulo, el mismo en todas las operaciones:
-;; 0 = exito o "si", -1 = fallo o "no". Las preguntas no devuelven T/nil
-;; porque nil es tambien el atomo de ausencia: un enlace ausente y una
-;; respuesta negativa no deben ser el mismo objeto.
+;; 0 = exito o "si"; -1 = fallo o "no".
 (defconstant +success-value+ 0)
 (defconstant +failure-value+ -1)
 
-;; El valor vive en cada nodo concreto: las estructuras de Common Lisp no
-;; heredan de otras estructuras, asi que tree-node y graph-node repiten el
-;; campo en lugar de derivar de una base comun.
+;; Sin herencia de estructuras en CL: cada nodo declara el valor.
 (defstruct tree-node
   value
   left
@@ -95,8 +39,6 @@
 (defstruct binary-tree
   root
   count)
-
-;; graph-node y neighbor-node son internos a graph; no se exportan.
 
 (defstruct neighbor-node
   label
@@ -107,125 +49,189 @@
   neighbors
   next-vertex)
 
-;; Los campos de graph no se llaman vertex-count ni edge-count: los accesores
-;; que genera defstruct ocuparian los nombres de las operaciones publicas y el
-;; compilador rechaza la redefinicion.
+;; vertex-total y edges: los accesores no deben pisar las operaciones publicas.
 (defstruct graph
   vertices
   vertex-total
   edges)
 
 (defun tree-node-init (value)
-  "Integer -> tree-node. Crea el nodo con este valor y ambos enlaces ausentes.
-Es la puerta publica al constructor. Esqueleto: ausencia."
-  (declare (ignore value))
-  nil)
+  "Integer -> tree-node. Crea el nodo con este valor y ambos enlaces ausentes."
+  (make-tree-node :value value))
 
 (defun tree-node-get-value (node)
-  "tree-node -> Integer. Lee el valor embebido sin validar el nodo.
-Esqueleto: ausencia."
-  (declare (ignore node))
-  +failure-value+)
+  "tree-node -> Integer. Lee el valor embebido sin validar el nodo."
+  (tree-node-value node))
 
 (defun tree-node-get-left (node)
-  "tree-node -> tree-node o nil. Lee el enlace izquierdo; nil es ausente.
-Esqueleto: ausencia."
-  (declare (ignore node))
-  +failure-value+)
+  "tree-node -> tree-node o nil. Lee el enlace izquierdo; nil es ausente."
+  (tree-node-left node))
 
 (defun tree-node-get-right (node)
-  "tree-node -> tree-node o nil. Lee el enlace derecho; nil es ausente.
-Esqueleto: ausencia."
-  (declare (ignore node))
-  +failure-value+)
+  "tree-node -> tree-node o nil. Lee el enlace derecho; nil es ausente."
+  (tree-node-right node))
 
 (defun tree-node-set-left (node left)
   "tree-node, tree-node o nil -> tree-node. Muta el enlace izquierdo
-conservando valor y enlace derecho; nil lo desenlaza. Esqueleto: nada."
-  (declare (ignore node left))
-  +failure-value+)
+conservando valor y enlace derecho; nil lo desenlaza."
+  (setf (tree-node-left node) left)
+  node)
 
 (defun tree-node-set-right (node right)
   "tree-node, tree-node o nil -> tree-node. Muta el enlace derecho
-conservando valor y enlace izquierdo; nil lo desenlaza. Esqueleto: nada."
-  (declare (ignore node right))
-  +failure-value+)
+conservando valor y enlace izquierdo; nil lo desenlaza."
+  (setf (tree-node-right node) right)
+  node)
 
 (defun binary-tree-init ()
-  "() -> binary-tree. Crea un arbol vacio y utilizable: raiz ausente y tamano
-0, sin parametro de capacidad. Es la puerta publica al constructor; make-*
-queda como primitiva interna. Esqueleto: ausencia."
-  nil)
+  "() -> binary-tree. Devuelve un arbol vacio y utilizable: raiz ausente y
+tamano 0, sin parametro de capacidad."
+  (make-binary-tree :count 0))
 
 (defun binary-tree-insert (tree value)
-  "binary-tree, Integer -> 0 o -1. Inserta el valor y devuelve 0; el duplicado
- tambien es exito y no crece el tamano. -1 solo cabria por agotamiento de
- memoria, que Common Lisp senala con storage-condition. Esqueleto: fallo."
-  (declare (ignore tree value))
-  +failure-value+)
+  "binary-tree, Integer -> 0. Inserta el valor en el ABB y devuelve 0;
+el duplicado tambien devuelve 0 y no crece el tamano. Nunca devuelve -1:
+el agotamiento de memoria senala una storage-condition. La invariante ABB
+(menores a la izquierda, mayores a la derecha) se mantiene."
+  (let ((root (binary-tree-root tree)))
+    (cond
+      ((null root)
+       (setf (binary-tree-root tree) (make-tree-node :value value))
+       (incf (binary-tree-count tree))
+       +success-value+)
+      (t
+       (loop with current = root
+             for current-value = (tree-node-value current)
+             do (cond
+                  ((< value current-value)
+                   (let ((child (tree-node-left current)))
+                     (if child
+                         (setf current child)
+                         (progn
+                           (setf (tree-node-left current)
+                                 (make-tree-node :value value))
+                           (incf (binary-tree-count tree))
+                           (return +success-value+)))))
+                  ((> value current-value)
+                   (let ((child (tree-node-right current)))
+                     (if child
+                         (setf current child)
+                         (progn
+                           (setf (tree-node-right current)
+                                 (make-tree-node :value value))
+                           (incf (binary-tree-count tree))
+                           (return +success-value+)))))
+                  (t
+                   (return +success-value+))))))))
 
 (defun binary-tree-contains (tree value)
-  "binary-tree, Integer -> 0 o -1. 0 si el valor esta, -1 si no; no muta.
-Esqueleto: fallo."
-  (declare (ignore tree value))
-  +failure-value+)
+  "binary-tree, Integer -> 0 o -1. 0 si el valor esta, -1 si no; no muta."
+  (let ((current (binary-tree-root tree)))
+    (loop while current
+          for current-value = (tree-node-value current)
+          do (cond
+               ((< value current-value)
+                (setf current (tree-node-left current)))
+               ((> value current-value)
+                (setf current (tree-node-right current)))
+               (t (return +success-value+)))
+          finally (return +failure-value+))))
 
 (defun binary-tree-is-empty (tree)
-  "binary-tree -> 0 o -1. 0 si el arbol no tiene nodos, -1 si tiene alguno.
-Esqueleto: fallo."
-  (declare (ignore tree))
-  +failure-value+)
+  "binary-tree -> 0 o -1. 0 si el arbol no tiene nodos, -1 si tiene alguno."
+  (if (= (binary-tree-count tree) 0)
+      +success-value+
+      +failure-value+))
 
 (defun binary-tree-size (tree)
-  "binary-tree -> Integer. Numero de nodos, nunca negativo. Esqueleto: 0."
-  (declare (ignore tree))
-  0)
+  "binary-tree -> Integer. Numero de nodos, nunca negativo."
+  (binary-tree-count tree))
 
 (defun graph-init ()
-  "() -> graph. Crea un grafo vacio y utilizable: 0 vertices y 0 aristas.
-Es la puerta publica al constructor; make-* queda como primitiva interna.
-Esqueleto: ausencia."
-  nil)
+  "() -> graph. Devuelve un grafo vacio y utilizable: 0 vertices y 0 aristas."
+  (make-graph :vertex-total 0 :edges 0))
+
+(defun %graph-find-vertex (graph label)
+  "graph, Integer -> graph-node o nil. Recorre el registro enlazado de
+vertices y devuelve el que tiene esta etiqueta, o nil si no existe."
+  (loop for current = (graph-vertices graph)
+          then (graph-node-next-vertex current)
+        while current
+        when (= label (graph-node-label current))
+          return current))
 
 (defun graph-add-vertex (graph label)
-  "graph, Integer -> 0 o -1. Registra la etiqueta y devuelve 0, tambien si es
- duplicada, conservando la adyacencia y los contadores. Esqueleto: fallo."
-  (declare (ignore graph label))
-  +failure-value+)
+  "graph, Integer -> 0. Registra la etiqueta y devuelve 0, tambien si es
+duplicada, conservando la adyacencia y los contadores."
+  (unless (%graph-find-vertex graph label)
+    (let ((node (make-graph-node :label label)))
+      (setf (graph-node-next-vertex node) (graph-vertices graph))
+      (setf (graph-vertices graph) node)
+      (incf (graph-vertex-total graph))))
+  +success-value+)
 
 (defun graph-add-edge (graph u v)
   "graph, Integer, Integer -> 0 o -1. 0 si la arista dirigida queda registrada,
- incluidos bucle y repetida; -1 si falta algun extremo, sin mutar ni crear
- vertices implicitos. Esqueleto: fallo."
-  (declare (ignore graph u v))
-  +failure-value+)
+incluidos bucle y repetida; -1 si falta algun extremo, sin mutar ni crear
+vertices implicitos."
+  (let ((source (%graph-find-vertex graph u))
+        (target (%graph-find-vertex graph v)))
+    (if (or (null source) (null target))
+        +failure-value+
+        (let ((previous nil)
+              (current (graph-node-neighbors source)))
+          ;; Avanzar hasta el punto de insercion (adyacencia ordenada)
+          (loop while (and current (< (neighbor-node-label current) v))
+                do (setf previous current)
+                   (setf current (neighbor-node-next current)))
+          (cond
+            ((and current (= (neighbor-node-label current) v))
+             +success-value+)
+            (t
+             (let ((new-node (make-neighbor-node :label v :next current)))
+               (if previous
+                   (setf (neighbor-node-next previous) new-node)
+                   (setf (graph-node-neighbors source) new-node))
+               (incf (graph-edges graph))
+               +success-value+)))))))
 
 (defun graph-has-edge (graph u v)
   "graph, Integer, Integer -> 0 o -1. 0 si la arista dirigida existe; -1 si no
-existe o falta algun extremo. No muta. Esqueleto: fallo."
-  (declare (ignore graph u v))
-  +failure-value+)
+existe o falta algun extremo. No muta."
+  (let ((source (%graph-find-vertex graph u))
+        (target (%graph-find-vertex graph v)))
+    (if (or (null source) (null target))
+        +failure-value+
+        (loop for current = (graph-node-neighbors source)
+                then (neighbor-node-next current)
+              while current
+              when (= v (neighbor-node-label current))
+                return +success-value+
+              finally (return +failure-value+)))))
 
 (defun graph-get-neighbors (graph u)
   "graph, Integer -> (values lista resultado). Lista ascendente y sin repetidos,
- como copia nueva, con resultado 0; (values nil -1) si la etiqueta no esta
- registrada y (values nil 0) si el vertice esta aislado. Esqueleto: fallo."
-  (declare (ignore graph u))
-  (values nil +failure-value+))
+como copia nueva, con resultado 0; (values nil -1) si la etiqueta no esta
+registrada y (values nil 0) si el vertice esta aislado."
+  (let ((source (%graph-find-vertex graph u)))
+    (if (null source)
+        (values nil +failure-value+)
+        (values (loop for current = (graph-node-neighbors source)
+                        then (neighbor-node-next current)
+                      while current
+                      collect (neighbor-node-label current))
+                +success-value+))))
 
 (defun graph-is-empty (graph)
-  "graph -> 0 o -1. 0 si no hay vertices registrados, -1 si hay alguno.
-Esqueleto: fallo."
-  (declare (ignore graph))
-  +failure-value+)
+  "graph -> 0 o -1. 0 si no hay vertices registrados, -1 si hay alguno."
+  (if (zerop (graph-vertex-total graph))
+      +success-value+
+      +failure-value+))
 
 (defun graph-vertex-count (graph)
-  "graph -> Integer. Numero de vertices, nunca negativo. Esqueleto: 0."
-  (declare (ignore graph))
-  0)
+  "graph -> Integer. Numero de vertices, nunca negativo."
+  (graph-vertex-total graph))
 
 (defun graph-edge-count (graph)
-  "graph -> Integer. Numero de aristas dirigidas, nunca negativo.
-Esqueleto: 0."
-  (declare (ignore graph))
-  0)
+  "graph -> Integer. Numero de aristas dirigidas, nunca negativo."
+  (graph-edges graph))
